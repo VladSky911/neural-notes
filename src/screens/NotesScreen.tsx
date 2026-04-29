@@ -25,9 +25,18 @@ export default function NotesScreen() {
     }, []),
   );
 
-  const handleDelete = async (id: string) => {
-    await deleteNote(id);
-    fetchNotes();
+  const handleDelete = (id: string) => {
+    Alert.alert("Delete Note", "Are you sure?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          await deleteNote(id);
+          fetchNotes();
+        },
+      },
+    ]);
   };
 
   return (
@@ -37,10 +46,10 @@ export default function NotesScreen() {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={styles.noteItem}
             onPress={() =>
               navigation.navigate("NoteEditor", { noteId: item.id })
             }
+            onLongPress={() => handleDelete(item.id)}
           >
             <Text style={styles.noteTitle}>{item.title || "Untitled"}</Text>
             <Text style={styles.noteDate}>

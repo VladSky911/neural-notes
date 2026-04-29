@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { View, TextInput, StyleSheet, Alert } from "react-native";
+import { TouchableOpacity, Text } from "react-native";
 import { RichEditor, RichToolbar } from "react-native-pell-rich-editor";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { loadNotes, addNote, updateNote } from "../storage/notesStorage";
@@ -47,14 +48,14 @@ export default function NoteEditorScreen() {
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <TextInput
-          style={{ marginRight: 15, fontSize: 18, color: "#007AFF" }}
-          onPress={saveNote}
-          value="Save"
-        />
+        <TouchableOpacity onPress={saveNote}>
+          <Text style={{ marginRight: 15, fontSize: 18, color: "#007AFF" }}>
+            Save
+          </Text>
+        </TouchableOpacity>
       ),
     });
-  }, [navigation, title, content]);
+  }, [navigation, title, content, saveNote]);
 
   return (
     <View style={styles.container}>
