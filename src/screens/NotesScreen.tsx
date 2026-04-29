@@ -1,23 +1,84 @@
-import React, { useRef } from "react";
-import { View, StyleSheet } from "react-native";
-import { RichEditor, RichToolbar } from "react-native-pell-rich-editor";
+import React, { useState, useCallback } from "react";
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  StyleSheet,
+} from "react-native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import { loadNotes, deleteNote } from "../storage/notesStorage";
+import { Note } from "../types/note";
 
-export default function NoteEditorScreen() {
-  const richTextRef = useRef<RichEditor>(null);
+export default function NotesScreen() {
+  const [notes, setNotes] = useState<Note[]>([]);
+  const navigation = useNavigation();
+
+  const fetchNotes = async () => {
+    const loaded = await loadNotes();
+    setNotes(loaded);
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchNotes();
+    }, []),
+  );
+
+  const handleDelete = async (id: string) => {
+    await deleteNote(id);
+    fetchNotes();
+  };
 
   return (
     <View style={styles.container}>
-      <RichEditor
-        ref={richTextRef}
-        style={styles.editor}
-        initialContentHTML="<p>Start writing...</p>"
+      <FlatList
+        data={notes}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.noteItem}
+            onPress={() =>
+              navigation.navigate("NoteEditor", { noteId: item.id })
+            }
+          >
+            <Text style={styles.noteTitle}>{item.title || "Untitled"}</Text>
+            <Text style={styles.noteDate}>
+              {new Date(item.updatedAt).toLocaleString()}
+            </Text>
+          </TouchableOpacity>
+        )}
+        ListEmptyComponent={
+          <Text style={styles.empty}>No notes yet. Tap + to create.</Text>
+        }
       />
-      <RichToolbar editor={richTextRef} />
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => navigation.navigate("NoteEditor", {})}
+      >
+        <Text style={styles.fabText}>+</Text>
+      </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
-  editor: { flex: 1, marginTop: 10, marginHorizontal: 10 },
+  noteItem: { padding: 16, borderBottomWidth: 1, borderColor: "#ccc" },
+  noteTitle: { fontSize: 18, fontWeight: "bold" },
+  noteDate: { fontSize: 12, color: "#888", marginTop: 4 },
+  empty: { textAlign: "center", marginTop: 50, fontSize: 16, color: "#888" },
+  fab: {
+    position: "absolute",
+    bottom: 20,
+    right: 20,
+    backgroundColor: "#007AFF",
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 5,
+  },
+  fabText: { fontSize: 28, color: "#fff", fontWeight: "bold" },
 });

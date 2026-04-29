@@ -4,7 +4,12 @@ import { createStackNavigator } from "@react-navigation/stack";
 import NotesScreen from "../screens/NotesScreen";
 import NoteEditorScreen from "../screens/NoteEditorScreen";
 
-const Stack = createStackNavigator();
+type RootStackParamList = {
+  Notes: undefined;
+  NoteEditor: { noteId?: string };
+};
+
+const Stack = createStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
   return (
