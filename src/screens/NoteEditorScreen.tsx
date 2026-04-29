@@ -1,17 +1,20 @@
-import { View, Text, StyleSheet } from "react-native";
+import React from "react";
+import { View, StyleSheet } from "react-native";
+import { RichEditor, RichToolbar } from "react-native-pell-rich-editor";
 
 export default function NoteEditorScreen() {
   return (
     <View style={styles.container}>
-      <Text>Редактор заметок</Text>
+      <RichEditor
+        style={styles.editor}
+        initialContentHTML="<p>Start writing...</p>"
+      />
+      <RichToolbar editor={RichEditor} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  container: { flex: 1, backgroundColor: "#fff" },
+  editor: { flex: 1, marginTop: 10, marginHorizontal: 10 },
 });

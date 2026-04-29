@@ -1,3 +1,4 @@
+import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import NotesScreen from "../screens/NotesScreen";
@@ -12,12 +13,12 @@ export default function AppNavigator() {
         <Stack.Screen
           name="Notes"
           component={NotesScreen}
-          options={{ title: "Мои заметки" }}
+          options={{ title: "My notes" }}
         />
         <Stack.Screen
           name="NoteEditor"
           component={NoteEditorScreen}
-          options={{ title: "Редактор" }}
+          options={{ title: "Editor" }}
         />
       </Stack.Navigator>
     </NavigationContainer>
