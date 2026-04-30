@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/groxy.js": {
+      "runtime": "nodejs18.x"
+    }
+  }
+}
