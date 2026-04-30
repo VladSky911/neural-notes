@@ -11,7 +11,11 @@ import { RichEditor, RichToolbar } from "react-native-pell-rich-editor";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { loadNotes, addNote, updateNote } from "../storage/notesStorage";
 import { Note } from "../types/note";
-import { summarizeNote, rewriteNote } from "../services/aiService"; // добавили rewriteNote
+import {
+  summarizeNote,
+  rewriteNote,
+  generateTags,
+} from "../services/aiService";
 
 export default function NoteEditorScreen() {
   const route = useRoute();
@@ -72,6 +76,33 @@ export default function NoteEditorScreen() {
     }
   };
 
+  const handleGenerateTags = async () => {
+    if (!content.trim()) {
+      Alert.alert("Info", "Write something first");
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const tags = await generateTags(content);
+      const tagsText = tags.join(", ");
+      Alert.alert("Suggested Tags", tagsText, [
+        {
+          text: "Add to note",
+          onPress: () => {
+            const tagsHtml = `<br/><br/>🏷️ Tags: ${tagsText}`;
+            richTextRef.current?.insertHTML(tagsHtml);
+            setContent((prev) => prev + tagsHtml);
+          },
+        },
+        { text: "Cancel", style: "cancel" },
+      ]);
+    } catch (error) {
+      Alert.alert("Error", "Failed to generate tags");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleRewrite = () => {
     if (!content.trim()) {
       Alert.alert("Info", "Write something first");
@@ -105,23 +136,26 @@ export default function NoteEditorScreen() {
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <View style={{ flexDirection: "row", marginRight: 15 }}>
+        <View style={{ flexDirection: "row" }}>
           <TouchableOpacity
             onPress={handleAISummary}
             style={{ marginRight: 15 }}
           >
-            <Text style={{ fontSize: 18, color: "#007AFF" }}>AI</Text>
+            <Text style={styles.headerButtonText}>AI</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleRewrite} style={{ marginRight: 15 }}>
-            <Text style={{ fontSize: 18, color: "#007AFF" }}>RW</Text>
+          <TouchableOpacity
+            onPress={handleGenerateTags}
+            style={{ marginRight: 15 }}
+          >
+            <Text style={styles.headerButtonText}>Tags</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={saveNote}>
-            <Text style={{ fontSize: 18, color: "#007AFF" }}>Save</Text>
+            <Text style={styles.headerButtonText}>Save</Text>
           </TouchableOpacity>
         </View>
       ),
     });
-  }, [navigation, title, content, saveNote, handleAISummary, handleRewrite]);
+  }, [navigation, title, content, saveNote, handleGenerateTags]);
 
   return (
     <View style={styles.container}>
@@ -152,4 +186,8 @@ const styles = StyleSheet.create({
     borderColor: "#ccc",
   },
   editor: { flex: 1, marginTop: 10, marginHorizontal: 10 },
+  headerButtonText: {
+    fontSize: 18,
+    color: "#007AFF",
+  },
 });
