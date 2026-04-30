@@ -11,7 +11,7 @@ import { RichEditor, RichToolbar } from "react-native-pell-rich-editor";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { loadNotes, addNote, updateNote } from "../storage/notesStorage";
 import { Note } from "../types/note";
-import { summarizeNote } from "../services/aiService";
+import { summarizeNote, rewriteNote } from "../services/aiService"; // добавили rewriteNote
 
 export default function NoteEditorScreen() {
   const route = useRoute();
@@ -19,6 +19,7 @@ export default function NoteEditorScreen() {
   const { noteId } = route.params as { noteId?: string };
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const richTextRef = useRef<RichEditor>(null);
 
   useEffect(() => {
@@ -52,8 +53,6 @@ export default function NoteEditorScreen() {
     navigation.goBack();
   };
 
-  const [isLoading, setIsLoading] = useState(false);
-
   const handleAISummary = async () => {
     if (!content.trim()) {
       Alert.alert("Info", "Write something first");
@@ -62,9 +61,41 @@ export default function NoteEditorScreen() {
     setIsLoading(true);
     try {
       const summary = await summarizeNote(content);
-      setContent((prev) => prev + `\n\n---\n✨ AI Summary: ${summary}`);
+      const summaryHtml = `<br/><br/>---<br/>✨ AI Summary: ${summary}`;
+      richTextRef.current?.insertHTML(summaryHtml);
+      setContent((prev) => prev + summaryHtml);
     } catch (error) {
+      console.error(error);
       Alert.alert("Error", "Failed to summarize. Check API key.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRewrite = () => {
+    if (!content.trim()) {
+      Alert.alert("Info", "Write something first");
+      return;
+    }
+    Alert.alert("Rewrite style", "Choose a style for the rewritten note", [
+      { text: "Professional", onPress: () => performRewrite("professional") },
+      { text: "Casual", onPress: () => performRewrite("casual") },
+      { text: "Simple", onPress: () => performRewrite("simple") },
+      { text: "Cancel", style: "cancel" },
+    ]);
+  };
+
+  const performRewrite = async (
+    style: "professional" | "casual" | "simple",
+  ) => {
+    setIsLoading(true);
+    try {
+      const rewritten = await rewriteNote(content, style);
+      // Заменяем текущее содержимое
+      richTextRef.current?.setContentHTML(rewritten);
+      setContent(rewritten);
+    } catch (error) {
+      Alert.alert("Error", "Failed to rewrite note");
       console.error(error);
     } finally {
       setIsLoading(false);
@@ -74,11 +105,15 @@ export default function NoteEditorScreen() {
   useEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <View style={{ flexDirection: "row" }}>
-          <TouchableOpacity onPress={handleAISummary}>
-            <Text style={{ marginRight: 15, fontSize: 18, color: "#007AFF" }}>
-              AI
-            </Text>
+        <View style={{ flexDirection: "row", marginRight: 15 }}>
+          <TouchableOpacity
+            onPress={handleAISummary}
+            style={{ marginRight: 15 }}
+          >
+            <Text style={{ fontSize: 18, color: "#007AFF" }}>AI</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleRewrite} style={{ marginRight: 15 }}>
+            <Text style={{ fontSize: 18, color: "#007AFF" }}>RW</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={saveNote}>
             <Text style={{ fontSize: 18, color: "#007AFF" }}>Save</Text>
@@ -86,7 +121,7 @@ export default function NoteEditorScreen() {
         </View>
       ),
     });
-  }, [navigation, title, content, saveNote]);
+  }, [navigation, title, content, saveNote, handleAISummary, handleRewrite]);
 
   return (
     <View style={styles.container}>
