@@ -1,18 +1,30 @@
-import { GROQ_API_KEY } from "@env";
-import { createOpenAI } from "@ai-sdk/openai";
-import { generateText } from "ai";
+// src/services/aiService.ts
+const PROXY_URL = "https://neural-notes-pied.vercel.app/api/groq"; // твой URL
 
-const groq = createOpenAI({
-  baseURL: "https://api.groq.com/openai/v1",
-  apiKey: GROQ_API_KEY,
-});
+// Универсальная функция для вызова прокси
+async function callGroq(
+  messages: Array<{ role: string; content: string }>,
+  model = "llama-3.3-70b-versatile",
+): Promise<string> {
+  const response = await fetch(PROXY_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ messages, model }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || "Request failed");
+  return data.choices[0].message.content;
+}
 
 export async function summarizeNote(content: string): Promise<string> {
-  const { text } = await generateText({
-    model: groq("mixtral-8x7b-32768"),
-    prompt: `Summarize the following note in 2-3 sentences:\n\n${content}`,
-  });
-  return text;
+  const result = await callGroq([
+    {
+      role: "system",
+      content: "Summarize the following note in 2-3 sentences.",
+    },
+    { role: "user", content },
+  ]);
+  return result.trim();
 }
 
 export async function rewriteNote(
@@ -24,17 +36,21 @@ export async function rewriteNote(
     casual: "Rewrite in a friendly, conversational tone",
     simple: "Simplify the language for easier reading",
   };
-  const { text } = await generateText({
-    model: groq("mixtral-8x7b-32768"),
-    prompt: `Rewrite the following note. ${stylePrompt[style]}:\n\n${content}`,
-  });
-  return text;
+  const result = await callGroq([
+    { role: "system", content: stylePrompt[style] },
+    { role: "user", content },
+  ]);
+  return result.trim();
 }
 
 export async function generateTags(content: string): Promise<string[]> {
-  const { text } = await generateText({
-    model: groq("mixtral-8x7b-32768"),
-    prompt: `Generate 3-5 single-word tags for this note, separated by commas. Only return tags, no extra text:\n\n${content}`,
-  });
-  return text.split(",").map((tag) => tag.trim().toLowerCase());
+  const result = await callGroq([
+    {
+      role: "system",
+      content:
+        "Extract 3-5 single-word tags from the note. Return only tags separated by commas, no extra text.",
+    },
+    { role: "user", content },
+  ]);
+  return result.split(",").map((tag) => tag.trim().toLowerCase());
 }
