@@ -1,4 +1,4 @@
-module.exports = async function handler(req, res) {
+module.exports = async (req, res) => {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -11,27 +11,53 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const response = await fetch(
-      "https://api.groq.com/openai/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model,
-          messages,
-          temperature: 0.7,
-        }),
+    const https = require("https");
+    const data = JSON.stringify({
+      model,
+      messages,
+      temperature: 0.7,
+    });
+
+    const options = {
+      hostname: "api.groq.com",
+      path: "/openai/v1/chat/completions",
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        "Content-Length": Buffer.byteLength(data),
       },
-    );
+    };
 
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error?.message || "Groq API error");
+    const request = https.request(options, (response) => {
+      let body = "";
+      response.on("data", (chunk) => {
+        body += chunk;
+      });
+      response.on("end", () => {
+        try {
+          const json = JSON.parse(body);
+          if (!response.statusCode.toString().startsWith("2")) {
+            console.error("Groq error:", json);
+            return res
+              .status(response.statusCode)
+              .json({ error: json.error?.message || "Groq API error" });
+          }
+          res.status(200).json(json);
+        } catch (err) {
+          res.status(500).json({ error: err.message });
+        }
+      });
+    });
 
-    res.status(200).json(data);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    request.on("error", (err) => {
+      console.error("Request error:", err);
+      res.status(500).json({ error: err.message });
+    });
+    request.write(data);
+    request.end();
+  } catch (err) {
+    console.error("Unexpected error:", err);
+    res.status(500).json({ error: err.message });
   }
 };

@@ -149,13 +149,16 @@ export default function NoteEditorScreen() {
           >
             <Text style={styles.headerButtonText}>Tags</Text>
           </TouchableOpacity>
+          <TouchableOpacity onPress={handleRewrite} style={{ marginRight: 15 }}>
+            <Text style={styles.headerButtonText}>RW</Text>
+          </TouchableOpacity>
           <TouchableOpacity onPress={saveNote}>
             <Text style={styles.headerButtonText}>Save</Text>
           </TouchableOpacity>
         </View>
       ),
     });
-  }, [navigation, title, content, saveNote, handleGenerateTags]);
+  }, [navigation, title, content, saveNote, handleGenerateTags, handleRewrite]);
 
   return (
     <View style={styles.container}>
