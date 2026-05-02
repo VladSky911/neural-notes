@@ -1,12 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import {
-  Alert,
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  TextInput,
-} from "react-native";
+import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
+import { Alert, View, StyleSheet, TextInput } from "react-native";
 import { RichEditor, RichToolbar } from "react-native-pell-rich-editor";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { loadNotes, addNote, updateNote } from "../storage/notesStorage";
@@ -16,6 +9,8 @@ import {
   rewriteNote,
   generateTags,
 } from "../services/aiService";
+import GlassHeader from "../components/GlassHeader";
+import GlassButton from "../components/GlassButton";
 
 export default function NoteEditorScreen() {
   const route = useRoute();
@@ -26,6 +21,12 @@ export default function NoteEditorScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const richTextRef = useRef<RichEditor>(null);
 
+  // Скрываем стандартный хедер
+  useLayoutEffect(() => {
+    navigation.setOptions({ headerShown: false });
+  }, [navigation]);
+
+  // Загрузка существующей заметки
   useEffect(() => {
     if (noteId) {
       loadNotes().then((notes) => {
@@ -33,9 +34,7 @@ export default function NoteEditorScreen() {
         if (note) {
           setTitle(note.title);
           setContent(note.content);
-          if (richTextRef.current) {
-            richTextRef.current.setContentHTML(note.content);
-          }
+          richTextRef.current?.setContentHTML(note.content);
         }
       });
     }
@@ -122,7 +121,6 @@ export default function NoteEditorScreen() {
     setIsLoading(true);
     try {
       const rewritten = await rewriteNote(content, style);
-      // Заменяем текущее содержимое
       richTextRef.current?.setContentHTML(rewritten);
       setContent(rewritten);
     } catch (error) {
@@ -133,35 +131,19 @@ export default function NoteEditorScreen() {
     }
   };
 
-  useEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <View style={{ flexDirection: "row" }}>
-          <TouchableOpacity
-            onPress={handleAISummary}
-            style={{ marginRight: 15 }}
-          >
-            <Text style={styles.headerButtonText}>AI</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={handleGenerateTags}
-            style={{ marginRight: 15 }}
-          >
-            <Text style={styles.headerButtonText}>Tags</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleRewrite} style={{ marginRight: 15 }}>
-            <Text style={styles.headerButtonText}>RW</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={saveNote}>
-            <Text style={styles.headerButtonText}>Save</Text>
-          </TouchableOpacity>
-        </View>
-      ),
-    });
-  }, [navigation, title, content, saveNote, handleGenerateTags, handleRewrite]);
-
   return (
     <View style={styles.container}>
+      <GlassHeader
+        title="Edit Note"
+        rightButtons={
+          <View style={{ flexDirection: "row", gap: 12 }}>
+            <GlassButton title="AI" onPress={handleAISummary} />
+            <GlassButton title="Tags" onPress={handleGenerateTags} />
+            <GlassButton title="RW" onPress={handleRewrite} />
+            <GlassButton title="Save" onPress={saveNote} />
+          </View>
+        }
+      />
       <TextInput
         style={styles.titleInput}
         placeholder="Title"
@@ -180,17 +162,27 @@ export default function NoteEditorScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: {
+    flex: 1,
+    backgroundColor: "#f8f9ff", // под цвет фона списка
+  },
   titleInput: {
     fontSize: 24,
-    fontWeight: "bold",
+    fontWeight: "600",
     padding: 16,
-    borderBottomWidth: 1,
-    borderColor: "#ccc",
+    backgroundColor: "rgba(255,255,255,0.7)",
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 8,
+    borderRadius: 16,
+    borderWidth: 0.5,
+    borderColor: "rgba(0,0,0,0.1)",
   },
-  editor: { flex: 1, marginTop: 10, marginHorizontal: 10 },
-  headerButtonText: {
-    fontSize: 18,
-    color: "#007AFF",
+  editor: {
+    flex: 1,
+    marginHorizontal: 12,
+    marginBottom: 12,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.7)",
   },
 });
