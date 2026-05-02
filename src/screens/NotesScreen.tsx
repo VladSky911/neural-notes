@@ -6,25 +6,68 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  RefreshControl,
 } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { loadNotes, deleteNote } from "../storage/notesStorage";
 import { Note } from "../types/note";
 import Animated, {
+  useSharedValue,
   useAnimatedStyle,
   withSpring,
 } from "react-native-reanimated";
+
+// Компонент одной карточки с анимацией
+const NoteCard = ({
+  item,
+  onPress,
+  onLongPress,
+}: {
+  item: Note;
+  onPress: () => void;
+  onLongPress: () => void;
+}) => {
+  const scale = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const plainContent = item.content.replace(/<[^>]*>/g, "").substring(0, 100);
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.97);
+  };
+  const handlePressOut = () => {
+    scale.value = withSpring(1);
+  };
+
+  return (
+    <Animated.View style={[styles.card, animatedStyle]}>
+      <TouchableOpacity
+        activeOpacity={1}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        onPress={onPress}
+        onLongPress={onLongPress}
+      >
+        <Text style={styles.cardTitle} numberOfLines={1}>
+          {item.title || "Untitled"}
+        </Text>
+        <Text style={styles.cardPreview} numberOfLines={2}>
+          {plainContent || "No content"}
+        </Text>
+        <Text style={styles.cardDate}>
+          {new Date(item.updatedAt).toLocaleDateString()}
+        </Text>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
 
 export default function NotesScreen() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation();
-  const handlePressIn = (scale: Animated.SharedValue<number>) => {
-    scale.value = withSpring(0.97);
-  };
-  const handlePressOut = (scale: Animated.SharedValue<number>) => {
-    scale.value = withSpring(1);
-  };
 
   const fetchNotes = async () => {
     const loaded = await loadNotes();
@@ -57,34 +100,13 @@ export default function NotesScreen() {
     ]);
   };
 
-  const renderItem = ({ item }: { item: Note }) => {
-    const plainContent = item.content.replace(/<[^>]*>/g, "").substring(0, 100);
-    const animatedScale = useSharedValue(1);
-    const animatedStyle = useAnimatedStyle(() => ({
-      transform: [{ scale: animatedScale.value }],
-    }));
-    return (
-      <Animated.View style={[styles.card, animatedStyle]}>
-        <TouchableOpacity
-          activeOpacity={1}
-          onPressIn={() => handlePressIn(animatedScale)}
-          onPressOut={() => handlePressOut(animatedScale)}
-          onPress={() => navigation.navigate("NoteEditor", { noteId: item.id })}
-          onLongPress={() => handleDelete(item.id)}
-        >
-          <Text style={styles.cardTitle} numberOfLines={1}>
-            {item.title || "Untitled"}
-          </Text>
-          <Text style={styles.cardPreview} numberOfLines={2}>
-            {plainContent || "No content"}
-          </Text>
-          <Text style={styles.cardDate}>
-            {new Date(item.updatedAt).toLocaleDateString()}
-          </Text>
-        </TouchableOpacity>
-      </Animated.View>
-    );
-  };
+  const renderItem = ({ item }: { item: Note }) => (
+    <NoteCard
+      item={item}
+      onPress={() => navigation.navigate("NoteEditor", { noteId: item.id })}
+      onLongPress={() => handleDelete(item.id)}
+    />
+  );
 
   return (
     <View style={styles.container}>
@@ -101,10 +123,11 @@ export default function NotesScreen() {
   );
 }
 
+// Стили остаются без изменений
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f9ff", // светлый фон, под стекло
+    backgroundColor: "#f8f9ff",
   },
   listContent: {
     paddingTop: 16,
