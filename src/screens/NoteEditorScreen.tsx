@@ -15,7 +15,7 @@ import GlassButton from "../components/GlassButton";
 export default function NoteEditorScreen() {
   const route = useRoute();
   const navigation = useNavigation();
-  const { noteId } = route.params as { noteId?: string };
+  const noteId = route.params?.noteId;
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -150,13 +150,15 @@ export default function NoteEditorScreen() {
         value={title}
         onChangeText={setTitle}
       />
-      <RichEditor
-        ref={richTextRef}
-        style={styles.editor}
-        initialContentHTML={content}
-        onChange={(html) => setContent(html)}
-      />
-      <RichToolbar editor={richTextRef} />
+      <View style={styles.editorContainer}>
+        <RichEditor
+          ref={richTextRef}
+          style={styles.editor}
+          initialContentHTML={content}
+          onChange={(html) => setContent(html)}
+        />
+      </View>
+      <RichToolbar editor={richTextRef} style={styles.toolbar} />
     </View>
   );
 }
@@ -164,13 +166,13 @@ export default function NoteEditorScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f9ff", // под цвет фона списка
+    backgroundColor: "#f8f9ff",
   },
   titleInput: {
     fontSize: 24,
     fontWeight: "600",
     padding: 16,
-    backgroundColor: "rgba(255,255,255,0.7)",
+    backgroundColor: "rgba(255, 255, 255, 0.7)",
     marginHorizontal: 16,
     marginTop: 12,
     marginBottom: 8,
@@ -178,11 +180,21 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: "rgba(0,0,0,0.1)",
   },
-  editor: {
+
+  editorContainer: {
     flex: 1,
+    backgroundColor: "rgba(255, 255, 255, 0.9)", // почти белый, но лёгкая полупрозрачность
+    borderRadius: 24,
     marginHorizontal: 12,
     marginBottom: 12,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.7)",
+    overflow: "hidden",
+  },
+  editor: {
+    flex: 1,
+    backgroundColor: "transparent", // это для самого компонента
+  },
+  toolbar: {
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    borderTopWidth: 0,
   },
 });
