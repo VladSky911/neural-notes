@@ -196,5 +196,7 @@ const styles = StyleSheet.create({
   toolbar: {
     backgroundColor: "rgba(255, 255, 255, 0.9)",
     borderTopWidth: 0,
+    marginBottom: 40,
+    paddingBottom: 5,
   },
 });
