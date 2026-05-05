@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { Alert, View, StyleSheet, TextInput } from "react-native";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { RichEditor, RichToolbar } from "react-native-pell-rich-editor";
 import { useRoute, useNavigation } from "@react-navigation/native";
 import { loadNotes, addNote, updateNote } from "../storage/notesStorage";
@@ -9,6 +13,7 @@ import {
   rewriteNote,
   generateTags,
 } from "../services/aiService";
+// Если GlassHeader/GlassButton работают — оставьте, иначе замените на простые View
 import GlassHeader from "../components/GlassHeader";
 import GlassButton from "../components/GlassButton";
 
@@ -20,13 +25,12 @@ export default function NoteEditorScreen() {
   const [content, setContent] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const richTextRef = useRef<RichEditor>(null);
+  const insets = useSafeAreaInsets(); // для нижнего отступа
 
-  // Скрываем стандартный хедер
   useLayoutEffect(() => {
     navigation.setOptions({ headerShown: false });
   }, [navigation]);
 
-  // Загрузка существующей заметки
   useEffect(() => {
     if (noteId) {
       loadNotes().then((notes) => {
@@ -45,7 +49,7 @@ export default function NoteEditorScreen() {
     if (noteId) {
       await updateNote(noteId, { title, content, updatedAt: now });
     } else {
-      const newNote: Note = {
+      const newNote = {
         id: Date.now().toString(),
         title,
         content,
@@ -57,10 +61,7 @@ export default function NoteEditorScreen() {
   };
 
   const handleAISummary = async () => {
-    if (!content.trim()) {
-      Alert.alert("Info", "Write something first");
-      return;
-    }
+    if (!content.trim()) return Alert.alert("Info", "Write something first");
     setIsLoading(true);
     try {
       const summary = await summarizeNote(content);
@@ -68,7 +69,6 @@ export default function NoteEditorScreen() {
       richTextRef.current?.insertHTML(summaryHtml);
       setContent((prev) => prev + summaryHtml);
     } catch (error) {
-      console.error(error);
       Alert.alert("Error", "Failed to summarize. Check API key.");
     } finally {
       setIsLoading(false);
@@ -76,10 +76,7 @@ export default function NoteEditorScreen() {
   };
 
   const handleGenerateTags = async () => {
-    if (!content.trim()) {
-      Alert.alert("Info", "Write something first");
-      return;
-    }
+    if (!content.trim()) return Alert.alert("Info", "Write something first");
     setIsLoading(true);
     try {
       const tags = await generateTags(content);
@@ -103,11 +100,8 @@ export default function NoteEditorScreen() {
   };
 
   const handleRewrite = () => {
-    if (!content.trim()) {
-      Alert.alert("Info", "Write something first");
-      return;
-    }
-    Alert.alert("Rewrite style", "Choose a style for the rewritten note", [
+    if (!content.trim()) return Alert.alert("Info", "Write something first");
+    Alert.alert("Rewrite style", "Choose a style", [
       { text: "Professional", onPress: () => performRewrite("professional") },
       { text: "Casual", onPress: () => performRewrite("casual") },
       { text: "Simple", onPress: () => performRewrite("simple") },
@@ -125,14 +119,13 @@ export default function NoteEditorScreen() {
       setContent(rewritten);
     } catch (error) {
       Alert.alert("Error", "Failed to rewrite note");
-      console.error(error);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
       <GlassHeader
         title="Edit Note"
         rightButtons={
@@ -158,16 +151,16 @@ export default function NoteEditorScreen() {
           onChange={(html) => setContent(html)}
         />
       </View>
-      <RichToolbar editor={richTextRef} style={styles.toolbar} />
-    </View>
+      <RichToolbar
+        editor={richTextRef}
+        style={[styles.toolbar, { paddingBottom: insets.bottom + 10 }]} // ключевая правка: динамический отступ
+      />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f8f9ff",
-  },
+  container: { flex: 1, backgroundColor: "#f8f9ff" },
   titleInput: {
     fontSize: 24,
     fontWeight: "600",
@@ -180,23 +173,17 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: "rgba(0,0,0,0.1)",
   },
-
   editorContainer: {
     flex: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.9)", // почти белый, но лёгкая полупрозрачность
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
     borderRadius: 24,
     marginHorizontal: 12,
     marginBottom: 12,
     overflow: "hidden",
   },
-  editor: {
-    flex: 1,
-    backgroundColor: "transparent", // это для самого компонента
-  },
+  editor: { flex: 1, backgroundColor: "transparent" },
   toolbar: {
     backgroundColor: "rgba(255, 255, 255, 0.9)",
     borderTopWidth: 0,
-    marginBottom: 40,
-    paddingBottom: 5,
   },
 });
