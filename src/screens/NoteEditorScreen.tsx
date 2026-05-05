@@ -35,6 +35,7 @@ export default function NoteEditorScreen() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isDraftSaved, setIsDraftSaved] = useState(false);
   const richTextRef = useRef<RichEditor>(null);
   const insets = useSafeAreaInsets();
 
@@ -50,7 +51,6 @@ export default function NoteEditorScreen() {
         }
       });
     } else {
-      // Новая заметка: загружаем черновик, если есть
       loadDraft().then((draft) => {
         if (draft && (draft.title || draft.content)) {
           setTitle(draft.title);
@@ -61,12 +61,14 @@ export default function NoteEditorScreen() {
     }
   }, [noteId]);
 
-  // Автосохранение черновика (только для новой заметки, с задержкой 1с)
+  // Автосохранение черновика (только для новой заметки)
   useEffect(() => {
-    if (noteId) return; // у существующих заметок черновик не нужен
+    if (noteId) return;
     const timeoutId = setTimeout(() => {
       if (title.trim() || content.trim()) {
         saveDraft({ title, content });
+        setIsDraftSaved(true);
+        setTimeout(() => setIsDraftSaved(false), 2000);
       }
     }, 1000);
     return () => clearTimeout(timeoutId);
@@ -84,7 +86,7 @@ export default function NoteEditorScreen() {
         updatedAt: now,
       };
       await addNote(newNote);
-      await clearDraft(); // очищаем черновик после сохранения
+      await clearDraft();
     }
     navigation.goBack();
   };
@@ -101,8 +103,7 @@ export default function NoteEditorScreen() {
       richTextRef.current?.insertHTML(summaryHtml);
       setContent((prev) => prev + summaryHtml);
     } catch (error) {
-      console.error(error);
-      Alert.alert("Error", "Failed to summarize. Check API key.");
+      Alert.alert("Error", "Failed to summarize");
     } finally {
       setIsLoading(false);
     }
@@ -140,7 +141,7 @@ export default function NoteEditorScreen() {
       Alert.alert("Info", "Write something first");
       return;
     }
-    Alert.alert("Rewrite style", "Choose a style for the rewritten note", [
+    Alert.alert("Rewrite style", "Choose a style", [
       { text: "Professional", onPress: () => performRewrite("professional") },
       { text: "Casual", onPress: () => performRewrite("casual") },
       { text: "Simple", onPress: () => performRewrite("simple") },
@@ -157,23 +158,23 @@ export default function NoteEditorScreen() {
       richTextRef.current?.setContentHTML(rewritten);
       setContent(rewritten);
     } catch (error) {
-      Alert.alert("Error", "Failed to rewrite note");
-      console.error(error);
+      Alert.alert("Error", "Failed to rewrite");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Скрываем стандартный хедер
   useLayoutEffect(() => {
     navigation.setOptions({ headerShown: false });
   }, [navigation]);
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
-      {/* Кастомный заголовок */}
       <View style={styles.customHeader}>
-        <Text style={styles.headerTitle}>Edit Note</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Text style={styles.headerTitle}>Edit Note</Text>
+          {isDraftSaved && <Text style={styles.draftBadge}>Draft saved</Text>}
+        </View>
         <View style={styles.headerButtons}>
           <TouchableOpacity
             onPress={handleAISummary}
@@ -234,6 +235,16 @@ const styles = StyleSheet.create({
     borderBottomColor: "rgba(0,0,0,0.1)",
   },
   headerTitle: { fontSize: 22, fontWeight: "600", color: "#1c1c1e" },
+  draftBadge: {
+    fontSize: 12,
+    color: "#34c759",
+    fontWeight: "500",
+    backgroundColor: "rgba(52,199,89,0.15)",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
   headerButtons: { flexDirection: "row", gap: 12 },
   headerButton: {
     paddingHorizontal: 12,
