@@ -45,3 +45,38 @@ export const deleteNote = async (id: string): Promise<void> => {
   const filtered = notes.filter((n) => n.id !== id);
   await saveNotes(filtered);
 };
+
+// Черновик (для новой заметки)
+const DRAFT_KEY = "@note_draft";
+
+export const saveDraft = async (draft: {
+  title: string;
+  content: string;
+}): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  } catch (e) {
+    console.error("Failed to save draft", e);
+  }
+};
+
+export const loadDraft = async (): Promise<{
+  title: string;
+  content: string;
+} | null> => {
+  try {
+    const json = await AsyncStorage.getItem(DRAFT_KEY);
+    return json ? JSON.parse(json) : null;
+  } catch (e) {
+    console.error("Failed to load draft", e);
+    return null;
+  }
+};
+
+export const clearDraft = async (): Promise<void> => {
+  try {
+    await AsyncStorage.removeItem(DRAFT_KEY);
+  } catch (e) {
+    console.error("Failed to clear draft", e);
+  }
+};

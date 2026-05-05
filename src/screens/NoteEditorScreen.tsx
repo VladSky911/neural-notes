@@ -13,7 +13,14 @@ import {
 } from "react-native-safe-area-context";
 import { RichEditor, RichToolbar } from "react-native-pell-rich-editor";
 import { useRoute, useNavigation } from "@react-navigation/native";
-import { loadNotes, addNote, updateNote } from "../storage/notesStorage";
+import {
+  loadNotes,
+  addNote,
+  updateNote,
+  saveDraft,
+  loadDraft,
+  clearDraft,
+} from "../storage/notesStorage";
 import { Note } from "../types/note";
 import {
   summarizeNote,
@@ -31,10 +38,7 @@ export default function NoteEditorScreen() {
   const richTextRef = useRef<RichEditor>(null);
   const insets = useSafeAreaInsets();
 
-  useLayoutEffect(() => {
-    navigation.setOptions({ headerShown: false });
-  }, [navigation]);
-
+  // Загрузка существующей заметки или черновика
   useEffect(() => {
     if (noteId) {
       loadNotes().then((notes) => {
@@ -45,8 +49,28 @@ export default function NoteEditorScreen() {
           richTextRef.current?.setContentHTML(note.content);
         }
       });
+    } else {
+      // Новая заметка: загружаем черновик, если есть
+      loadDraft().then((draft) => {
+        if (draft && (draft.title || draft.content)) {
+          setTitle(draft.title);
+          setContent(draft.content);
+          richTextRef.current?.setContentHTML(draft.content);
+        }
+      });
     }
   }, [noteId]);
+
+  // Автосохранение черновика (только для новой заметки, с задержкой 1с)
+  useEffect(() => {
+    if (noteId) return; // у существующих заметок черновик не нужен
+    const timeoutId = setTimeout(() => {
+      if (title.trim() || content.trim()) {
+        saveDraft({ title, content });
+      }
+    }, 1000);
+    return () => clearTimeout(timeoutId);
+  }, [title, content, noteId]);
 
   const saveNote = async () => {
     const now = Date.now();
@@ -60,6 +84,7 @@ export default function NoteEditorScreen() {
         updatedAt: now,
       };
       await addNote(newNote);
+      await clearDraft(); // очищаем черновик после сохранения
     }
     navigation.goBack();
   };
@@ -139,9 +164,14 @@ export default function NoteEditorScreen() {
     }
   };
 
+  // Скрываем стандартный хедер
+  useLayoutEffect(() => {
+    navigation.setOptions({ headerShown: false });
+  }, [navigation]);
+
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
-      {/* Кастомный заголовок: заголовок слева, кнопки справа */}
+      {/* Кастомный заголовок */}
       <View style={styles.customHeader}>
         <Text style={styles.headerTitle}>Edit Note</Text>
         <View style={styles.headerButtons}>
@@ -191,10 +221,7 @@ export default function NoteEditorScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f8f9ff",
-  },
+  container: { flex: 1, backgroundColor: "#f8f9ff" },
   customHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -202,37 +229,26 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 12,
     paddingHorizontal: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    backgroundColor: "rgba(255,255,255,0.8)",
     borderBottomWidth: 0.5,
     borderBottomColor: "rgba(0,0,0,0.1)",
   },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: "600",
-    color: "#1c1c1e",
-  },
-  headerButtons: {
-    flexDirection: "row",
-    gap: 12,
-  },
+  headerTitle: { fontSize: 22, fontWeight: "600", color: "#1c1c1e" },
+  headerButtons: { flexDirection: "row", gap: 12 },
   headerButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    backgroundColor: "rgba(255,255,255,0.9)",
     borderRadius: 20,
     borderWidth: 0.5,
     borderColor: "rgba(0,0,0,0.1)",
   },
-  headerButtonText: {
-    fontSize: 15,
-    fontWeight: "500",
-    color: "#007AFF",
-  },
+  headerButtonText: { fontSize: 15, fontWeight: "500", color: "#007AFF" },
   titleInput: {
     fontSize: 24,
     fontWeight: "600",
     padding: 16,
-    backgroundColor: "rgba(255, 255, 255, 0.7)",
+    backgroundColor: "rgba(255,255,255,0.7)",
     marginHorizontal: 16,
     marginTop: 12,
     marginBottom: 8,
@@ -242,18 +258,12 @@ const styles = StyleSheet.create({
   },
   editorContainer: {
     flex: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    backgroundColor: "rgba(255,255,255,0.9)",
     borderRadius: 24,
     marginHorizontal: 12,
     marginBottom: 12,
     overflow: "hidden",
   },
-  editor: {
-    flex: 1,
-    backgroundColor: "transparent",
-  },
-  toolbar: {
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
-    borderTopWidth: 0,
-  },
+  editor: { flex: 1, backgroundColor: "transparent" },
+  toolbar: { backgroundColor: "rgba(255,255,255,0.9)", borderTopWidth: 0 },
 });
