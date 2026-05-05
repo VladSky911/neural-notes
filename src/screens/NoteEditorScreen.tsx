@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
-import { Alert, View, StyleSheet, TextInput } from "react-native";
+import {
+  Alert,
+  View,
+  StyleSheet,
+  TextInput,
+  Text,
+  TouchableOpacity,
+} from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -13,9 +20,6 @@ import {
   rewriteNote,
   generateTags,
 } from "../services/aiService";
-// Если GlassHeader/GlassButton работают — оставьте, иначе замените на простые View
-import GlassHeader from "../components/GlassHeader";
-import GlassButton from "../components/GlassButton";
 
 export default function NoteEditorScreen() {
   const route = useRoute();
@@ -25,7 +29,7 @@ export default function NoteEditorScreen() {
   const [content, setContent] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const richTextRef = useRef<RichEditor>(null);
-  const insets = useSafeAreaInsets(); // для нижнего отступа
+  const insets = useSafeAreaInsets();
 
   useLayoutEffect(() => {
     navigation.setOptions({ headerShown: false });
@@ -49,7 +53,7 @@ export default function NoteEditorScreen() {
     if (noteId) {
       await updateNote(noteId, { title, content, updatedAt: now });
     } else {
-      const newNote = {
+      const newNote: Note = {
         id: Date.now().toString(),
         title,
         content,
@@ -61,7 +65,10 @@ export default function NoteEditorScreen() {
   };
 
   const handleAISummary = async () => {
-    if (!content.trim()) return Alert.alert("Info", "Write something first");
+    if (!content.trim()) {
+      Alert.alert("Info", "Write something first");
+      return;
+    }
     setIsLoading(true);
     try {
       const summary = await summarizeNote(content);
@@ -69,6 +76,7 @@ export default function NoteEditorScreen() {
       richTextRef.current?.insertHTML(summaryHtml);
       setContent((prev) => prev + summaryHtml);
     } catch (error) {
+      console.error(error);
       Alert.alert("Error", "Failed to summarize. Check API key.");
     } finally {
       setIsLoading(false);
@@ -76,7 +84,10 @@ export default function NoteEditorScreen() {
   };
 
   const handleGenerateTags = async () => {
-    if (!content.trim()) return Alert.alert("Info", "Write something first");
+    if (!content.trim()) {
+      Alert.alert("Info", "Write something first");
+      return;
+    }
     setIsLoading(true);
     try {
       const tags = await generateTags(content);
@@ -100,8 +111,11 @@ export default function NoteEditorScreen() {
   };
 
   const handleRewrite = () => {
-    if (!content.trim()) return Alert.alert("Info", "Write something first");
-    Alert.alert("Rewrite style", "Choose a style", [
+    if (!content.trim()) {
+      Alert.alert("Info", "Write something first");
+      return;
+    }
+    Alert.alert("Rewrite style", "Choose a style for the rewritten note", [
       { text: "Professional", onPress: () => performRewrite("professional") },
       { text: "Casual", onPress: () => performRewrite("casual") },
       { text: "Simple", onPress: () => performRewrite("simple") },
@@ -119,6 +133,7 @@ export default function NoteEditorScreen() {
       setContent(rewritten);
     } catch (error) {
       Alert.alert("Error", "Failed to rewrite note");
+      console.error(error);
     } finally {
       setIsLoading(false);
     }
@@ -126,23 +141,38 @@ export default function NoteEditorScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
-      <GlassHeader
-        title="Edit Note"
-        rightButtons={
-          <View style={{ flexDirection: "row", gap: 12 }}>
-            <GlassButton title="AI" onPress={handleAISummary} />
-            <GlassButton title="Tags" onPress={handleGenerateTags} />
-            <GlassButton title="RW" onPress={handleRewrite} />
-            <GlassButton title="Save" onPress={saveNote} />
-          </View>
-        }
-      />
+      {/* Кастомный заголовок: заголовок слева, кнопки справа */}
+      <View style={styles.customHeader}>
+        <Text style={styles.headerTitle}>Edit Note</Text>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity
+            onPress={handleAISummary}
+            style={styles.headerButton}
+          >
+            <Text style={styles.headerButtonText}>AI</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleGenerateTags}
+            style={styles.headerButton}
+          >
+            <Text style={styles.headerButtonText}>Tags</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleRewrite} style={styles.headerButton}>
+            <Text style={styles.headerButtonText}>RW</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={saveNote} style={styles.headerButton}>
+            <Text style={styles.headerButtonText}>Save</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <TextInput
         style={styles.titleInput}
         placeholder="Title"
         value={title}
         onChangeText={setTitle}
       />
+
       <View style={styles.editorContainer}>
         <RichEditor
           ref={richTextRef}
@@ -151,16 +181,53 @@ export default function NoteEditorScreen() {
           onChange={(html) => setContent(html)}
         />
       </View>
+
       <RichToolbar
         editor={richTextRef}
-        style={[styles.toolbar, { paddingBottom: insets.bottom + 10 }]} // ключевая правка: динамический отступ
+        style={[styles.toolbar, { paddingBottom: insets.bottom + 10 }]}
       />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f8f9ff" },
+  container: {
+    flex: 1,
+    backgroundColor: "#f8f9ff",
+  },
+  customHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: 12,
+    paddingBottom: 12,
+    paddingHorizontal: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    borderBottomWidth: 0.5,
+    borderBottomColor: "rgba(0,0,0,0.1)",
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: "600",
+    color: "#1c1c1e",
+  },
+  headerButtons: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  headerButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    borderRadius: 20,
+    borderWidth: 0.5,
+    borderColor: "rgba(0,0,0,0.1)",
+  },
+  headerButtonText: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: "#007AFF",
+  },
   titleInput: {
     fontSize: 24,
     fontWeight: "600",
@@ -181,7 +248,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     overflow: "hidden",
   },
-  editor: { flex: 1, backgroundColor: "transparent" },
+  editor: {
+    flex: 1,
+    backgroundColor: "transparent",
+  },
   toolbar: {
     backgroundColor: "rgba(255, 255, 255, 0.9)",
     borderTopWidth: 0,
