@@ -258,6 +258,6 @@ MIT License
 AI Developer · Fullstack Builder
 
 
-GitHub: VladSky911
+GitHub: vlad-vsdc
 
 If you find this project useful, don’t forget to ⭐ star the repository!
