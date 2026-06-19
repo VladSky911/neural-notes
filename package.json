@@ -6,7 +6,9 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "deploy": "npx expo export -p web && wrangler deploy",
+    "preview": "npx expo export -p web && wrangler dev"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.54",
@@ -33,7 +35,8 @@
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
-    "typescript": "~5.9.2"
+    "typescript": "~5.9.2",
+    "wrangler": "^4.102.0"
   },
   "private": true
 }
