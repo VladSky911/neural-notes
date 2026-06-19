@@ -4,7 +4,7 @@ import { createStackNavigator } from "@react-navigation/stack";
 import NotesScreen from "../screens/NotesScreen";
 import NoteEditorScreen from "../screens/NoteEditorScreen";
 
-type RootStackParamList = {
+export type RootStackParamList = {
   Notes: undefined;
   NoteEditor: { noteId?: string };
 };
