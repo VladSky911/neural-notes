@@ -122,7 +122,7 @@ export default function NotesScreen() {
         </View>
         <TouchableOpacity
           activeOpacity={0.78}
-          onPress={() => navigation.navigate("NoteEditor")}
+          onPress={() => navigation.navigate("NoteEditor", {})}
           style={styles.createButton}
         >
           <Text style={styles.createButtonText}>+</Text>
@@ -188,7 +188,7 @@ export default function NotesScreen() {
             {!query && (
               <TouchableOpacity
                 activeOpacity={0.78}
-                onPress={() => navigation.navigate("NoteEditor")}
+                onPress={() => navigation.navigate("NoteEditor", {})}
                 style={styles.emptyButton}
               >
                 <Text style={styles.emptyButtonText}>Create note</Text>

@@ -13,6 +13,7 @@ import {
 } from "react-native-safe-area-context";
 import { RichEditor, RichToolbar } from "react-native-pell-rich-editor";
 import { useRoute, useNavigation } from "@react-navigation/native";
+import { RouteProp } from "@react-navigation/native";
 import {
   loadNotes,
   addNote,
@@ -27,9 +28,12 @@ import {
   rewriteNote,
   generateTags,
 } from "../services/aiService";
+import { RootStackParamList } from "../navigation/AppNavigator";
+
+type NoteEditorRoute = RouteProp<RootStackParamList, "NoteEditor">;
 
 export default function NoteEditorScreen() {
-  const route = useRoute();
+  const route = useRoute<NoteEditorRoute>();
   const navigation = useNavigation();
   const noteId = route.params?.noteId;
   const [title, setTitle] = useState("");
